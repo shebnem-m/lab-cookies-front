@@ -1,7 +1,7 @@
 # Lab: Who's there? 
-## Cookie-Based Auth
+<img src="./public/main.png" width=400 />
 
-<img src="./public/main.png" width=600 />
+## Cookie-Based Auth
 
 ## Introduction
 
