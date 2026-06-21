@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import Link from "next/link";
+import { useAuth } from "@/context/AuthContext";
 import Field from "./Field";
 import Button from "../components/Button";
 
@@ -14,6 +15,10 @@ export default function AuthForm() {
   const [confirm, setConfirm] = useState("");
   const confirmRef = useRef(null);
 
+  const { checkUserStatus } = useAuth();
+  
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
   const isLogin = mode === "login";
 
   async function sendLoginRequest() {
@@ -23,25 +28,22 @@ export default function AuthForm() {
     };
 
     try {
-      const response = await fetch("http://localhost:5000/auth/login", {
+      const response = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(formData),
+        credentials: "include", 
       });
 
       if (!response.ok) {
         const jsonResponse = await response.json();
         console.log("RESPONSE.MESSAGE:", jsonResponse.message);
-
         throw new Error(jsonResponse.message);
       }
 
-      const data = await response.json();
-      console.log("Logged in:", data);
-      // I need data.token
-      localStorage.setItem("token", data.token);
+      await checkUserStatus();
 
       setErrors((prev) => ({ ...prev, form: "" }));
     } catch (err) {
@@ -52,12 +54,8 @@ export default function AuthForm() {
 
   async function handleLogin(e) {
     e.preventDefault();
-    // TODO: store the auth token, then redirect to "/".
-
-    sendLoginRequest();
-
-    // The values you need are already in state:
-    console.log("login submit", { email, password });
+    await sendLoginRequest();
+    console.log("login submit completed for", { email });
   }
 
   async function sendSignupRequest() {
@@ -68,24 +66,25 @@ export default function AuthForm() {
     };
 
     try {
-      const response = await fetch("http://localhost:5000/auth/signup", {
+      const response = await fetch(`${API_URL}/auth/signup`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(formData),
+        credentials: "include",
       });
 
       if (!response.ok) {
         const jsonResponse = await response.json();
         console.log("RESPONSE.MESSAGE:", jsonResponse.message);
-
         throw new Error(jsonResponse.message);
       }
 
-      const data = await response.json();
-      console.log("Signed up:", data);
+      await checkUserStatus();
+
       setErrors((prev) => ({ ...prev, form: "" }));
+      window.location.href = "/";
     } catch (err) {
       console.error("Error:", err.message);
       setErrors((prev) => ({ ...prev, form: err.message }));
@@ -94,8 +93,6 @@ export default function AuthForm() {
 
   async function handleSignup(e) {
     e.preventDefault();
-    // TODO: validate the fields (e.g. password === confirm),
-    // call your signup API, then log the user in / redirect to "/".
 
     if (password !== confirm) {
       setErrors((prev) => ({ ...prev, confirm: "Passwords do not match" }));
@@ -104,12 +101,8 @@ export default function AuthForm() {
     }
 
     setErrors((prev) => ({ ...prev, confirm: "" }));
-
-    // make the post request
-    sendSignupRequest();
-
-    // The values you need are already in state:
-    console.log("signup submit", { name, email, password, confirm });
+    await sendSignupRequest();
+    console.log("signup submit completed for", { name, email });
   }
 
   return (
@@ -122,7 +115,7 @@ export default function AuthForm() {
       </Link>
 
       <p className="text-center text-xs text-muted tracking-widest mb-8">
-        {"// access_terminal"}
+        {isLogin ? "// access_terminal" : "// signup_terminal"}
       </p>
 
       <form
@@ -201,7 +194,7 @@ export default function AuthForm() {
           type="button"
           onClick={() => {
             setMode(isLogin ? "signup" : "login");
-            setErrors({ confirm: "" });
+            setErrors({ confirm: "", form: "" });
           }}
           className="text-primary hover:text-primary-strong underline underline-offset-4 cursor-pointer"
         >
